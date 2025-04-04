@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Étude sur le jugement moral</title>
+    
+    <!-- jsPsych core library -->
+    <script src="https://unpkg.com/jspsych@7.3.1"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.2"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-button-response@1.1.2"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-survey-likert@1.1.2"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-survey-text@1.1.2"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-survey-multi-choice@1.1.2"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-instructions@1.1.2"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-preload@1.1.2"></script>
+    
+    <!-- jsPsych stylesheet -->
+    <link href="https://unpkg.com/jspsych@7.3.1/css/jspsych.css" rel="stylesheet" type="text/css">
+    
+    <style>
+        .jspsych-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        p {
+            line-height: 1.6;
+            margin-bottom: 1em;
+        }
+        .highlighted {
+            font-weight: bold;
+            color: #d62728;
+        }
+        .instruction-text {
+            font-size: 18px;
+            text-align: left;
+        }
+        .dilemma-text {
+            font-size: 18px;
+            text-align: left;
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .treatment-info {
+            font-size: 18px;
+            text-align: left;
+            background-color: #f0f8ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #add8e6;
+        }
+    </style>
+</head>
+<body>
+    <script>
+        // Initialize jsPsych
+        const jsPsych = initJsPsych({
+            on_finish: function() {
+                // Display completion message
+                jsPsych.data.displayData();
+                
+                // Uncomment the line below to redirect to another page (e.g., Prolific, Qualtrics)
+                // window.location = "https://app.prolific.co/submissions/complete?cc=STUDY_ID";
+            }
+        });
+        
+        // Define variables to store experiment data
+        let condition;
+        let treatment;
+        let initialJudgment;
+        let confidenceRating;
+        let infoChoice;
+        let finalJudgment;
+        
+        /* EXPERIMENT PARAMETERS */
+        
+        // Randomize condition (pro-deontological or pro-consequentialist)
+        const conditions = ['pro-deontological', 'pro-consequentialist'];
+        condition = jsPsych.randomization.sampleWithoutReplacement(conditions, 1)[0];
+        
+        // Randomize treatment (baseline, announced revision, anticipation)
+        const treatments = ['baseline', 'announced-revision', 'anticipation'];
+        treatment = jsPsych.randomization.sampleWithoutReplacement(treatments, 1)[0];
+        
+        /* EXPERIMENT CONTENT */
+        
+        // Welcome screen
+        const welcome = {
+            type: jsPsychHtmlButtonResponse,
+            stimulus: `
+                <h1>Bienvenue dans cette étude sur le jugement moral</h1>
+                <p class="instruction-text">
+                    Cette étude examine comment les gens prennent des décisions morales dans différentes situations.
+                    Votre participation contribuera à la recherche sur la prise de décision morale.
+                </p>
+                <p class="instruction-text">
+                    L'étude prendra environ 10-15 minutes. Veuillez lire attentivement toutes les informations présentées.
+                </p>
+            `,
+            choices: ['Commencer l\'étude']
+        };
+        
+        // Instructions
+        const instructions = {
+            type: jsPsychInstructions,
+            pages: [
+                `<h2>Instructions</h2>
+                <p class="instruction-text">
+                    Dans cette étude, vous allez lire un dilemme moral et prendre des décisions à ce sujet.
+                </p>
+                <p class="instruction-text">
+                    Il n'y a pas de bonnes ou de mauvaises réponses. Nous sommes intéressés par votre jugement personnel.
+                </p>`,
+                
+                `<h2>Instructions</h2>
+                <p class="instruction-text">
+                    Vous serez d'abord présenté avec un dilemme moral.
+                </p>
+                <p class="instruction-text">
+                    Vous serez ensuite invité à faire un jugement initial sur ce dilemme.
+                </p>
+                <p class="instruction-text">
+                    Suite à cela, vous pourrez obtenir des informations supplémentaires sur le dilemme.
+                </p>`,
+                
+                `<h2>Instructions</h2>
+                <p class="instruction-text">
+                    Veuillez répondre honnêtement à toutes les questions.
+                </p>
+                <p class="instruction-text">
+                    Toutes vos réponses resteront anonymes et confidentielles.
+                </p>
+                <p class="instruction-text">
+                    Cliquez sur "Suivant" pour commencer.
+                </p>`
+            ],
+            show_clickable_nav: true
+        };
+        
+        // Demographics questionnaire
+        const demographics = {
+            type: jsPsychSurveyText,
+            preamble: `<h2>Données démographiques</h2>
+                      <p class="instruction-text">Veuillez fournir les informations suivantes :</p>`,
+            questions: [
+                { prompt: "Âge", name: 'age', required: true },
+                { prompt: "Genre", name: 'gender', required: true },
+                { prompt: "Niveau d'éducation", name: 'education', required: true }
+            ],
+            button_label: "Continuer"
+        };
+        
+        // Create the dilemma text based on condition
+        function getDilemmaText() {
+            if (condition === 'pro-consequentialist') {
+                return `
+                <div class="dilemma-text">
+                    <p>Imaginez la situation suivante : Vous êtes médecin dans un hôpital d'une grande ville. Ce matin, vous avez reçu un patient à l'hôpital. Après avoir examiné ses analyses, vous découvrez que la moelle osseuse de cette personne possède une propriété rare, avec laquelle vous pouvez créer un remède pour une maladie mortelle, ce qui permettra de sauver environ <b>100 000</b> personnes. Cependant, après avoir analysé le patient, vous réalisez qu'il ne pourra pas survivre à la procédure nécessaire pour extraire la moelle osseuse. Personne d'autre n'a accès à cette information, donc, si vous effectuez la procédure, aucune responsabilité légale ne vous sera attribuée pour la mort de ce patient.</p>
+                    
+                    <p>La situation est donc la suivante : Si vous n'effectuez pas la procédure, au moins 100 000 personnes qui souffrent de cette maladie mourront. Si vous effectuez la procédure, au moins 100 000 personnes qui souffrent de cette maladie seront sauvées.</p>
+                    
+                    <p>Pour créer un remède et sauver les personnes malades, vous devrez effectuer la procédure, tuant le patient.</p>
+                </div>
+                `;
+            } else { // pro-deontological
+                return `
+                <div class="dilemma-text">
+                    <p>Imaginez la situation suivante : Vous êtes médecin dans un hôpital d'une grande ville. Ce matin, vous avez reçu un <b>enfant</b> à l'hôpital. Après avoir examiné ses analyses, vous découvrez que la moelle osseuse de cet enfant possède une propriété rare, avec laquelle vous pouvez créer un remède pour une maladie mortelle, ce qui permettra de sauver d'autres personnes. Cependant, après avoir analysé l'enfant, vous réalisez qu'il ne pourra pas survivre à la procédure nécessaire pour extraire la moelle osseuse. Personne d'autre n'a accès à cette information, donc, si vous effectuez la procédure, aucune responsabilité légale ne vous sera attribuée pour la mort de cet enfant.</p>
+                    
+                    <p>La situation est donc la suivante : Si vous n'effectuez pas la procédure, les personnes qui souffrent de cette maladie mourront. Si vous effectuez la procédure, les personnes qui souffrent de cette maladie seront sauvées.</p>
+                    
+                    <p>Pour créer un remède et sauver les personnes malades, vous devrez effectuer la procédure, tuant l'enfant.</p>
+                </div>
+                `;
+            }
+        }
+        
+        // Treatment-specific instructions
+        function getTreatmentInfo() {
+            if (treatment === 'announced-revision') {
+                return `
+                <div class="treatment-info">
+                    <p><b>Note importante :</b> Après avoir fait votre choix initial, vous aurez l'opportunité de réviser votre jugement une fois que des informations supplémentaires vous seront révélées.</p>
+                </div>
+                `;
+            } else if (treatment === 'anticipation') {
+                if (condition === 'pro-consequentialist') {
+                    return `
+                    <div class="treatment-info">
+                        <p><b>Note importante :</b> Après avoir fait votre choix initial, vous aurez l'opportunité d'accéder à des informations supplémentaires concernant <b>l'identité de la personne à sacrifier</b>. Cette information pourrait potentiellement remettre en question votre jugement initial.</p>
+                    </div>
+                    `;
+                } else { // pro-deontological
+                    return `
+                    <div class="treatment-info">
+                        <p><b>Note importante :</b> Après avoir fait votre choix initial, vous aurez l'opportunité d'accéder à des informations supplémentaires concernant <b>le nombre de personnes qui pourraient être sauvées</b>. Cette information pourrait potentiellement remettre en question votre jugement initial.</p>
+                    </div>
+                    `;
+                }
+            } else { // baseline
+                return '';
+            }
+        }
+        
+        // Dilemma presentation
+        const dilemma = {
+            type: jsPsychHtmlButtonResponse,
+            stimulus: function() {
+                return `
+                <h2>Dilemme moral</h2>
+                ${getDilemmaText()}
+                ${getTreatmentInfo()}
+                `;
+            },
+            choices: ['Continuer'],
+            data: {
+                task: 'dilemma_presentation',
+                condition: function() { return condition; },
+                treatment: function() { return treatment; }
+            }
+        };
+        
+        // Initial moral judgment
+        const initialJudgmentChoice = {
+            type: jsPsychHtmlButtonResponse,
+            stimulus: function() {
+                let question;
+                if (condition === 'pro-consequentialist') {
+                    question = "Effectueriez-vous cette procédure afin de sauver environ 100 000 personnes qui souffrent de cette maladie, mais en tuant le patient ?";
+                } else { // pro-deontological
+                    question = "Effectueriez-vous cette procédure afin de sauver les personnes qui souffrent de cette maladie, mais en tuant l'enfant ?";
+                }
+                return `
+                <h2>Votre décision</h2>
+                ${getDilemmaText()}
+                <p class="instruction-text"><b>${question}</b></p>
+                `;
+            },
+            choices: ['Oui, j\'effectuerais la procédure', 'Non, je n\'effectuerais pas la procédure'],
+            data: {
+                task: 'initial_judgment'
+            },
+            on_finish: function(data) {
+                initialJudgment = data.response; // 0 = yes, 1 = no
+                data.initial_judgment = initialJudgment;
+                data.condition = condition;
+                data.treatment = treatment;
+                
+                // Determine if initial judgment is aligned with the nudge
+                // Pro-consequentialist nudge aligns with "yes" (utilitarian choice)
+                // Pro-deontological nudge aligns with "no" (deontological choice)
+                if (condition === 'pro-consequentialist') {
+                    data.aligned_with_nudge = (initialJudgment === 0) ? true : false;
+                } else { // pro-deontological
+                    data.aligned_with_nudge = (initialJudgment === 1) ? true : false;
+                }
+            }
+        };
+        
+        // Confidence rating
+        const confidenceRatingScale = {
+            type: jsPsychSurveyLikert,
+            preamble: `
+                <h2>Confiance dans votre décision</h2>
+                <p class="instruction-text">Dans quelle mesure êtes-vous confiant(e) dans la décision que vous venez de prendre ?</p>
+            `,
+            scale_width: 600,
+            questions: [
+                {
+                    prompt: "Niveau de confiance", 
+                    labels: ["1 - Pas du tout confiant(e)", "2", "3", "4", "5 - Moyennement confiant(e)", "6", "7", "8", "9 - Totalement confiant(e)"]
+                }
+            ],
+            data: {
+                task: 'confidence_rating'
+            },
+            on_finish: function(data) {
+                confidenceRating = data.response.Q0 + 1; // +1 because it's 0-indexed
+                data.confidence_rating = confidenceRating;
+            }
+        };
+        
+        // Information choice
+        const informationChoice = {
+            type: jsPsychHtmlButtonResponse,
+            stimulus: function() {
+                let missingInfoText;
+                if (condition === 'pro-consequentialist') {
+                    missingInfoText = "qui est le patient";
+                } else { // pro-deontological
+                    missingInfoText = "combien de vies seraient sauvées";
+                }
+                
+                let initialChoiceText = initialJudgment === 0 ? 
+                    "d'effectuer la procédure" : 
+                    "de ne pas effectuer la procédure";
+                
+                return `
+                <h2>Information supplémentaire</h2>
+                <p class="instruction-text">Vous avez décidé ${initialChoiceText} qui causerait la mort ${condition === 'pro-consequentialist' ? 'du patient' : 'de l\'enfant'}, mais qui permettrait de sauver ${condition === 'pro-consequentialist' ? 'environ 100 000' : 'les'} personnes qui souffrent de cette maladie.</p>
+                <p class="instruction-text">Dans ce scénario, aimeriez-vous savoir <b>${missingInfoText}</b>, ou préféreriez-vous ne pas le savoir ?</p>
+                `;
+            },
+            choices: ['Je souhaite savoir cette information', 'Je préfère ne pas savoir cette information'],
+            data: {
+                task: 'information_choice'
+            },
+            on_finish: function(data) {
+                infoChoice = data.response; // 0 = want to know, 1 = prefer not to know
+                data.info_choice = infoChoice;
+                data.info_avoidance = (infoChoice === 1) ? true : false;
+            }
+        };
+        
+        // Reveal missing information
+        const revealInformation = {
+            type: jsPsychHtmlButtonResponse,
+            stimulus: function() {
+                let revealedInfo;
+                if (condition === 'pro-consequentialist') {
+                    revealedInfo = "le patient à sacrifier, dont la moelle osseuse permettrait de sauver ces personnes, est un enfant";
+                } else { // pro-deontological
+                    revealedInfo = "le nombre de personnes qui seraient sauvées si vous effectuez cette procédure est d'environ 100 000";
+                }
+                
+                let infoStatusText = infoChoice === 0 ? 
+                    "Vous avez choisi de recevoir cette information :" : 
+                    "Même si vous avez préféré ne pas connaître cette information, nous vous la révélons maintenant pour les besoins de l'étude :";
+                
+                return `
+                <h2>Information révélée</h2>
+                <p class="instruction-text">${infoStatusText}</p>
+                <p class="instruction-text highlighted">Imaginez maintenant que ${revealedInfo}.</p>
+                `;
+            },
+            choices: ['Continuer'],
+            data: {
+                task: 'revealed_information'
+            }
+        };
+        
+        // Final moral judgment
+        const finalJudgmentChoice = {
+            type: jsPsychHtmlButtonResponse,
+            stimulus: function() {
+                let question;
+                if (condition === 'pro-consequentialist') {
+                    question = "Effectueriez-vous cette procédure afin de sauver environ 100 000 personnes qui souffrent de cette maladie, mais en tuant l'enfant ?";
+                } else { // pro-deontological
+                    question = "Effectueriez-vous cette procédure afin de sauver environ 100 000 personnes qui souffrent de cette maladie, mais en tuant l'enfant ?";
+                }
+                
+                return `
+                <h2>Votre décision finale</h2>
+                <p class="instruction-text">À la lumière de cette nouvelle information, veuillez reconsidérer votre décision.</p>
+                <p class="instruction-text"><b>${question}</b></p>
+                `;
+            },
+            choices: ['Oui, j\'effectuerais la procédure', 'Non, je n\'effectuerais pas la procédure'],
+            data: {
+                task: 'final_judgment'
+            },
+            on_finish: function(data) {
+                finalJudgment = data.response; // 0 = yes, 1 = no
+                data.final_judgment = finalJudgment;
+                
+                // Determine if judgment was revised
+                data.judgment_revised = (initialJudgment !== finalJudgment) ? true : false;
+            }
+        };
+        
+        // Deontological-Consequentialist Scale
+        const moralOrientationScale = {
+            type: jsPsychSurveyLikert,
+            preamble: `
+                <h2>Échelle d'orientation morale</h2>
+                <p class="instruction-text">Veuillez indiquer votre degré d'accord avec chacune des affirmations suivantes :</p>
+            `,
+            scale_width: 600,
+            questions: [
+                {
+                    prompt: "Il n'est jamais justifié de causer du mal ou de la souffrance à quiconque.", 
+                    name: 'deont1',
+                    labels: ["Pas du tout d'accord", "Plutôt pas d'accord", "Ni d'accord ni pas d'accord", "Plutôt d'accord", "Tout à fait d'accord"]
+                },
+                {
+                    prompt: "Certaines règles ne devraient jamais être enfreintes, même si les enfreindre permet un plus grand bien.", 
+                    name: 'deont2',
+                    labels: ["Pas du tout d'accord", "Plutôt pas d'accord", "Ni d'accord ni pas d'accord", "Plutôt d'accord", "Tout à fait d'accord"]
+                },
+                {
+                    prompt: "Certains principes sont universels : ils ne dépendent pas des circonstances.", 
+                    name: 'deont3',
+                    labels: ["Pas du tout d'accord", "Plutôt pas d'accord", "Ni d'accord ni pas d'accord", "Plutôt d'accord", "Tout à fait d'accord"]
+                },
+                {
+                    prompt: "La vie d'une personne est sacrée, et tuer est toujours mal.", 
+                    name: 'deont4',
+                    labels: ["Pas du tout d'accord", "Plutôt pas d'accord", "Ni d'accord ni pas d'accord", "Plutôt d'accord", "Tout à fait d'accord"]
+                },
+                {
+                    prompt: "Si causer du mal ou de la souffrance à une personne permet d'obtenir un plus grand bien pour un plus grand nombre de personnes, alors c'est justifiable.", 
+                    name: 'conseq1',
+                    labels: ["Pas du tout d'accord", "Plutôt pas d'accord", "Ni d'accord ni pas d'accord", "Plutôt d'accord", "Tout à fait d'accord"]
+                },
+                {
+                    prompt: "Il y a des circonstances qui justifient de briser certaines règles, surtout lorsque les enfreindre permet d'atteindre un plus grand bien.", 
+                    name: 'conseq2',
+                    labels: ["Pas du tout d'accord", "Plutôt pas d'accord", "Ni d'accord ni pas d'accord", "Plutôt d'accord", "Tout à fait d'accord"]
+                },
+                {
+                    prompt: "Parfois, la fin justifie les moyens.", 
+                    name: 'conseq3',
+                    labels: ["Pas du tout d'accord", "Plutôt pas d'accord", "Ni d'accord ni pas d'accord", "Plutôt d'accord", "Tout à fait d'accord"]
+                },
+                {
+                    prompt: "Si sacrifier une personne signifie en sauver beaucoup plus, alors c'est permis.", 
+                    name: 'conseq4',
+                    labels: ["Pas du tout d'accord", "Plutôt pas d'accord", "Ni d'accord ni pas d'accord", "Plutôt d'accord", "Tout à fait d'accord"]
+                }
+            ],
+            randomize_question_order: true,
+            data: {
+                task: 'moral_orientation'
+            },
+            on_finish: function(data) {
+                // Calculate deontological and consequentialist scores
+                const responses = data.response;
+                
+                // Create arrays to store the scores
+                const deontScores = [];
+                const conseqScores = [];
+                
+                // Extract scores for deontological items
+                Object.keys(responses).forEach(key => {
+                    if (key.includes('deont')) {
+                        deontScores.push(responses[key]);
+                    } else if (key.includes('conseq')) {
+                        conseqScores.push(responses[key]);
+                    }
+                });
+                
+                // Calculate average scores
+                const deontAvg = deontScores.reduce((a, b) => a + b, 0) / deontScores.length;
+                const conseqAvg = conseqScores.reduce((a, b) => a + b, 0) / conseqScores.length;
+                
+                // Add to data
+                data.deont_score = deontAvg;
+                data.conseq_score = conseqAvg;
+                data.moral_orientation = deontAvg > conseqAvg ? 'deontological' : 'consequentialist';
+            }
+        };
+        
+        // Manipulation check for Treatment 2 (Anticipation)
+        const manipulationCheck = {
+            type: jsPsychSurveyMultiChoice,
+            preamble: `
+                <h2>Vérification</h2>
+                <p class="instruction-text">Veuillez répondre à la question suivante :</p>
+            `,
+            questions: [
+                {
+                    prompt: "Avant de faire votre choix initial, saviez-vous que des informations supplémentaires vous seraient révélées plus tard ?", 
+                    name: 'manip_check',
+                    options: ['Oui', 'Non', 'Je ne suis pas sûr(e)'],
+                    required: true
+                }
+            ],
+            data: {
+                task: 'manipulation_check'
+            }
+        };
+        
+        // Only include manipulation check for treatments 1 and 2
+        const conditionalManipulationCheck = {
+            timeline: [manipulationCheck],
+            conditional_function: function() {
+                return treatment !== 'baseline';
+            }
+        };
+        
+        // End screen
+        const end = {
+            type: jsPsychHtmlButtonResponse,
+            stimulus: `
+                <h2>Fin de l'étude</h2>
+                <p class="instruction-text">
+                    Merci d'avoir participé à cette étude sur le jugement moral.
+                </p>
+                <p class="instruction-text">
+                    Vos réponses ont été enregistrées.
+                </p>
+                <p class="instruction-text">
+                    L'objectif de cette étude était d'examiner comment les individus évitent ou s'engagent avec des informations moralement pertinentes et comment leurs jugements évoluent lorsqu'ils sont confrontés à des détails manquants ou contradictoires.
+                </p>
+                <p class="instruction-text">
+                    Si vous avez des questions concernant cette étude, veuillez contacter le chercheur.
+                </p>
+            `,
+            choices: ['Terminer']
+        };
+        
+        /* CREATE TIMELINE */
+        
+        const timeline = [
+            welcome,
+            instructions,
+            demographics,
+            dilemma,
+            initialJudgmentChoice,
+            confidenceRatingScale,
+            informationChoice,
+            revealInformation,
+            finalJudgmentChoice,
+            moralOrientationScale,
+            conditionalManipulationCheck,
+            end
+        ];
+        
+        /* START THE EXPERIMENT */
+        jsPsych.run(timeline);
+    </script>
+</body>
+</html>
